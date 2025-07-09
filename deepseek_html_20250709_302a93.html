@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Globo Terrestre - Central Marítima</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.24.0/dist/globe.gl.min.js"></script>
+  <style>
+    body {
+      background: #000 url('veleiro1.png') no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .menu-bar {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      padding: 15px 0;
+      background-color: rgba(20, 20, 20, 0.9);
+      font-weight: bold;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .menu-bar a {
+      color: white;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+
+    .menu-bar a:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .menu-bar .active {
+      background-color: rgba(0, 209, 255, 0.2);
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+      font-size: 2rem;
+      background-color: rgba(31, 31, 31, 0.7);
+      padding: 12px;
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    main {
+      flex: 1;
+      padding: 1rem;
+      max-width: 100%;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .globe-container {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 15px;
+      height: 75vh;
+      max-height: 700px;
+      margin: 0 auto;
+      max-width: 1400px;
+    }
+
+    .control-panel {
+      background-color: rgba(40, 40, 40, 0.85);
+      border-radius: 8px;
+      padding: 15px;
+      width: 280px;
+      min-width: 280px;
+      overflow-y: auto;
+      transition: background-color 0.3s;
+    }
+
+    .globe-wrapper {
+      flex: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    #globeViz {
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .panel-title {
+      color: #00d1ff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 10px;
+      background-color: rgba(30, 30, 30, 0.8);
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #00d1ff;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background-color: #006080;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin-bottom: 10px;
+    }
+
+    .btn:hover {
+      background-color: #0080a0;
+    }
+
+    .btn-danger {
+      background-color: #801a00;
+    }
+
+    .btn-danger:hover {
+      background-color: #a02000;
+    }
+
+    .coordinates-list {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding: 10px;
+      background-color: rgba(30, 30, 30, 0.5);
+      border-radius: 6px;
+    }
+
+    .coordinates-list ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .coordinates-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.9rem;
+    }
+
+    .coordinates-list li:last-child {
+      border-bottom: none;
+    }
+
+    .coord-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 5px;
+    }
+
+    .coord-actions button {
+      background-color: rgba(0, 209, 255, 0.1);
+      border: 1px solid rgba(0, 209, 255, 0.3);
+      color: #00d1ff;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .coord-actions button:hover {
+      background-color: rgba(0, 209, 255, 0.2);
+    }
+
+    .footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.9rem;
+      color: #aaa;
+      background-color: rgba(20, 20, 20, 0.8);
+      margin-top: auto;
+    }
+
+    @media (max-width: 900px) {
+      .globe-container {
+        flex-direction: column;
+        height: auto;
+      }
+      
+      .control-panel {
+        width: 100%;
+      }
+      
+      .globe-wrapper {
+        height: 60vh;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra de Menu -->
+  <div class="menu-bar">
+    <a href="prompts.html">Prompts</a>
+    <a href="como-usar.html">Como Usar</a>
+    <a href="ias.html">IAs</a>
+    <a href="sistemas.html">Sistemas</a>
+    <a href="noticias.html">Notícias</a>
+    <a href="#" class="active">Globo</a>
+    <a href="noticias.html">Links Úteis</a>
+  </div>
+
+  <!-- Título -->
+  <h1>Globo Terrestre Interativo</h1>
+
+  <!-- Conteúdo Principal -->
+  <main>
+    <div class="globe-container">
+      <!-- Painel de Controle Esquerdo -->
+      <div class="control-panel">
+        <div class="panel-title">Adicionar Coordenadas</div>
+        
+        <div class="input-group">
+          <label for="latitude">Latitude (ex: 23º30'15"S)</label>
+          <input type="text" id="latitude" placeholder="00º00'00"S">
+        </div>
+        
+        <div class="input-group">
+          <label for="longitude">Longitude (ex: 046º30'15"W)</label>
+          <input type="text" id="longitude" placeholder="000º00'00"W">
+        </div>
+        
+        <button id="addPointBtn" class="btn">Adicionar Ponto</button>
+        <button id="drawRouteBtn" class="btn">Traçar Rota</button>
+        <button id="clearPointsBtn" class="btn btn-danger">Limpar Todos os Pontos</button>
+      </div>
+      
+      <!-- Globo Terrestre -->
+      <div class="globe-wrapper">
+        <div id="globeViz"></div>
+      </div>
+      
+      <!-- Painel de Informações Direito -->
+      <div class="control-panel">
+        <div class="panel-title">Pontos Marcados</div>
+        
+        <div id="lastPoint">
+          Último ponto: Nenhum ponto adicionado
+        </div>
+        
+        <div class="coordinates-list">
+          <div class="panel-title">Lista de Pontos</div>
+          <ul id="pointsList">
+            <!-- Pontos serão adicionados aqui -->
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Rodapé -->
+  <div class="footer">
+    &copy; 2025 Central Marítima e Operacional | Todos os direitos reservados.
+  </div>
+
+  <script>
+    // Função para converter coordenadas DMS para decimais
+    function dmsToDecimal(dms) {
+      // Extrai graus, minutos, segundos e direção
+      const matches = dms.match(/(\d{1,3})[º°](\d{1,2})['′](\d{1,2}(?:\.\d+)?)["″]([NSEWnsew])/);
+      
+      if (!matches) return null;
+      
+      const degrees = parseFloat(matches[1]);
+      const minutes = parseFloat(matches[2]);
+      const seconds = parseFloat(matches[3]);
+      const direction = matches[4].toUpperCase();
+      
+      // Calcula o valor decimal
+      let decimal = degrees + minutes/60 + seconds/3600;
+      
+      // Aplica a direção (S e W são negativos)
+      if (direction === 'S' || direction === 'W') {
+        decimal = -decimal;
+      }
+      
+      return decimal;
+    }
+
+    // Função para converter decimais para DMS
+    function decimalToDMS(decimal, isLatitude) {
+      // Determina a direção baseada no tipo (latitude ou longitude)
+      const directions = isLatitude ? ['N', 'S'] : ['E', 'W'];
+      const direction = decimal >= 0 ? directions[0] : directions[1];
+      
+      // Converte para valor absoluto
+      const absDecimal = Math.abs(decimal);
+      
+      // Calcula graus, minutos e segundos
+      const degrees = Math.floor(absDecimal);
+      const minutesDecimal = (absDecimal - degrees) * 60;
+      const minutes = Math.floor(minutesDecimal);
+      const seconds = Math.round((minutesDecimal - minutes) * 60 * 100) / 100;
+      
+      // Formata para DMS
+      return `${degrees}º${minutes}'${seconds.toFixed(2)}"${direction}`;
+    }
+
+    // Dados da aplicação
+    let points = [];
+    let routes = [];
+    
+    // Elementos DOM
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    const addPointBtn = document.getElementById('addPointBtn');
+    const drawRouteBtn = document.getElementById('drawRouteBtn');
+    const clearPointsBtn = document.getElementById('clearPointsBtn');
+    const pointsList = document.getElementById('pointsList');
+    const lastPointEl = document.getElementById('lastPoint');
+    
+    // Inicializar o globo
+    const globe = Globe()
+      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+      .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+      .backgroundColor('rgba(0,0,0,0)')
+      .showAtmosphere(true)
+      .atmosphereColor('rgba(0, 209, 255, 0.2)')
+      .width(document.querySelector('.globe-wrapper').offsetWidth)
+      .height(document.querySelector('.globe-wrapper').offsetHeight)
+      (document.getElementById('globeViz'));
+    
+    // Configurações adicionais do globo
+    globe.controls().enableZoom = true;
+    globe.controls().autoRotate = true;
+    globe.controls().autoRotateSpeed = 0.8;
+    
+    // Ajustar tamanho do globo ao redimensionar a janela
+    window.addEventListener('resize', () => {
+      const wrapper = document.querySelector('.globe-wrapper');
+      globe.width(wrapper.offsetWidth).height(wrapper.offsetHeight);
+    });
+    
+    // Função para adicionar ponto
+    function addPoint(latDMS, lngDMS) {
+      // Converter DMS para decimal
+      const lat = dmsToDecimal(latDMS);
+      const lng = dmsToDecimal(lngDMS);
+      
+      if (lat === null || lng === null) {
+        alert('Formato de coordenada inválido! Use o formato: 00º00\'00"S ou 000º00\'00"W');
+        return;
+      }
+      
+      // Criar ponto com ID único
+      const id = Date.now().toString();
+      points.push({ id, lat, lng, latDMS, lngDMS });
+      
+      // Atualizar o globo
+      updateGlobePoints();
+      
+      // Atualizar a lista de pontos
+      updatePointsList();
+      
+      // Atualizar último ponto
+      lastPointEl.textContent = `Último ponto: ${latDMS}/${lngDMS}`;
+      
+      // Limpar campos
+      latInput.value = '';
+      lngInput.value = '';
+      latInput.focus();
+    }
+    
+    // Função para atualizar os pontos no globo
+    function updateGlobePoints() {
+      globe.pointsData(points);
+      globe.pointColor(() => '#ff4081');
+      globe.pointAltitude(0.05);
+      globe.pointRadius(0.2);
+      globe.pointLabel(p => `${p.latDMS}/${p.lngDMS}`);
+    }
+    
+    // Função para atualizar a lista de pontos
+    function updatePointsList() {
+      pointsList.innerHTML = '';
+      
+      if (points.length === 0) {
+        pointsList.innerHTML = '<li>Nenhum ponto adicionado</li>';
+        return;
+      }
+      
+      points.forEach((point, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <strong>${index + 1}. ${point.latDMS}/${point.lngDMS}</strong>
+          <div class="coord-actions">
+            <button onclick="focusPoint(${point.lat}, ${point.lng})">Focar</button>
+            <button onclick="removePoint('${point.id}')">Remover</button>
+          </div>
+        `;
+        pointsList.appendChild(li);
+      });
+    }
+    
+    // Função para focar em um ponto
+    window.focusPoint = function(lat, lng) {
+      globe.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
+    };
+    
+    // Função para remover um ponto
+    window.removePoint = function(id) {
+      points = points.filter(point => point.id !== id);
+      updateGlobePoints();
+      updatePointsList();
+      
+      if (points.length === 0) {
+        lastPointEl.textContent = 'Último ponto: Nenhum ponto adicionado';
+      }
+    };
+    
+    // Função para traçar rota
+    function drawRoute() {
+      if (points.length < 2) {
+        alert('Adicione pelo menos 2 pontos para traçar uma rota!');
+        return;
+      }
+      
+      routes = [];
+      for (let i = 0; i < points.length - 1; i++) {
+        routes.push({
+          startLat: points[i].lat,
+          startLng: points[i].lng,
+          endLat: points[i+1].lat,
+          endLng: points[i+1].lng,
+          color: ['#4fc3f7', '#00b0ff']
+        });
+      }
+      
+      globe.arcsData(routes);
+      globe.arcColor('color');
+      globe.arcDashLength(0.4);
+      globe.arcDashGap(1);
+      globe.arcDashAnimateTime(3000);
+      globe.arcStroke(0.3);
+    }
+    
+    // Função para limpar todos os pontos
+    function clearPoints() {
+      points = [];
+      routes = [];
+      updateGlobePoints();
+      updatePointsList();
+      globe.arcsData([]);
+      lastPointEl.textContent = 'Último ponto: Nenhum ponto adicionado';
+    }
+    
+    // Event Listeners
+    addPointBtn.addEventListener('click', () => {
+      const latDMS = latInput.value.trim();
+      const lngDMS = lngInput.value.trim();
+      
+      if (latDMS && lngDMS) {
+        addPoint(latDMS, lngDMS);
+      } else {
+        alert('Por favor, preencha ambos os campos!');
+      }
+    });
+    
+    drawRouteBtn.addEventListener('click', drawRoute);
+    clearPointsBtn.addEventListener('click', clearPoints);
+    
+    // Adicionar ponto ao clicar no globo
+    globe.onGlobeClick(({ lat, lng }) => {
+      // Converter decimais para DMS
+      const latDMS = decimalToDMS(lat, true);
+      const lngDMS = decimalToDMS(lng, false);
+      
+      // Adicionar o ponto
+      const id = Date.now().toString();
+      points.push({ id, lat, lng, latDMS, lngDMS });
+      
+      // Atualizar interface
+      updateGlobePoints();
+      updatePointsList();
+      lastPointEl.textContent = `Último ponto: ${latDMS}/${lngDMS}`;
+    });
+    
+    // Adicionar alguns pontos iniciais para demonstração
+    setTimeout(() => {
+      addPoint('23º33\'00"S', '46º38\'00"W'); // São Paulo
+      addPoint('22º54\'00"S', '43º12\'00"W'); // Rio de Janeiro
+      addPoint('15º47\'00"S', '47º55\'00"W'); // Brasília
+    }, 1000);
+  </script>
+</body>
+</html>
